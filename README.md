@@ -18,16 +18,17 @@ Sophia Learner solves the challenge of converting raw documents (PDFs, Word file
 
 ## Documentation
 
-- [Technology Description](docs/technology_description.md) – Architecture, prerequisites, and security model
-- [User Guide](docs/user_guide.md) – Configuration and daily operation
-- [API Reference](docs/api.md) – Programmatic interfaces
+- [Overall Project Description](docs/00.Overall_description.md) - General information about the project
+- [Technology Description](docs/01.technology_description.md) – Architecture, prerequisites, and security model
+- [Exhaustive details of functions and classes](docs/03.Exhaustive_description.md) – Full details of functions and classes in the project
+- [Forward Compatibility](docs/09.forward_compatibility_plan.md) - Strategies to maximize compatibility with future updates
 
 ## Requirements
 
 - Linux (Ubuntu 20.04+, Debian 11+, or RHEL 8+)
 - Python 3.10 or higher
-- 8GB RAM minimum (16GB recommended for AI models)
-- 10GB free disk space (more for document storage)
+- 8GB RAM minimum (Plus large RAM for local AI models)
+- 100GB free disk space for training storage (plus document storage)
 
 ## Security
 
@@ -37,10 +38,3 @@ Sophia Learner implements defense-in-depth security:
 - Optional ClamAV integration for virus scanning
 - Quarantine system for suspicious files
 - No data leaves your infrastructure
-
-## Contributing
-
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
-4. **`development_guide.md`** – Setting up dev environment, adding new parsers, testing
-
-Would you like me to proceed with any of these, or should we begin coding the actual modules as per the prioritization plan?
