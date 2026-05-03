@@ -1,0 +1,689 @@
+{
+  "files": [
+    {
+      "filename": "src/sophia_learner/config/settings.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "_CONFIG_INSTANCE (global)",
+          "prompt": "Implement global variable `_CONFIG_INSTANCE: Optional[Settings] = None` as a singleton holder for configuration. No function required, just the variable declaration."
+        },
+        {
+          "function_name": "Settings (dataclass)",
+          "prompt": "Implement a dataclass named `Settings` with the following attributes: `watcher: WatcherConfig`, `scheduler: SchedulerConfig`, `security: SecurityConfig`, `ai: AIConfig`, `output: OutputConfig`, `database: DatabaseConfig`, `logging: LoggingConfig`, `management: ManagementConfig`. Also include the dataclass decorator and type hints. No methods needed."
+        },
+        {
+          "function_name": "WatcherConfig (dataclass)",
+          "prompt": "Implement a dataclass `WatcherConfig` with attributes: `watch_folders: List[Path]`, `file_extensions: List[str]`, `hold_hours: int`, `backfill_on_startup: bool`. Use `from pathlib import Path` and `from typing import List`. No methods."
+        },
+        {
+          "function_name": "SchedulerConfig (dataclass)",
+          "prompt": "Implement a dataclass `SchedulerConfig` with attributes: `processing_window: Dict[str, str]`, `timezone: str`, `delay_between_files_seconds: int`, `max_files_per_batch: int`. Use `from typing import Dict`."
+        },
+        {
+          "function_name": "SecurityConfig (dataclass)",
+          "prompt": "Implement a dataclass `SecurityConfig` with attributes: `sandbox_mode: bool`, `max_file_size_mb: int`, `max_extraction_time_seconds: int`, `enable_virus_scan: bool`, `virus_scan_command: str`, `quarantine_dir: Path`, `strip_macros: bool`, `allowed_mime_types: List[str]`."
+        },
+        {
+          "function_name": "AIConfig (dataclass)",
+          "prompt": "Implement a dataclass `AIConfig` with attributes: `backend: Literal[\"ollama\", \"transformers\"]`, `ollama: Optional[Dict]`, `transformers: Optional[Dict]`, `prompt_template: Path`, `output_schema: Dict`. Import `Literal` from `typing` and `Optional`."
+        },
+        {
+          "function_name": "OutputConfig (dataclass)",
+          "prompt": "Implement a dataclass `OutputConfig` with attributes: `folder: Path`, `format: Literal[\"jsonl\", \"json\"]`, `max_file_size_mb: int`, `rotate_daily: bool`, `compress_archive: bool`."
+        },
+        {
+          "function_name": "DatabaseConfig (dataclass)",
+          "prompt": "Implement a dataclass `DatabaseConfig` with attributes: `path: Path`, `backup_interval_hours: int`, `vacuum_on_startup: bool`."
+        },
+        {
+          "function_name": "LoggingConfig (dataclass)",
+          "prompt": "Implement a dataclass `LoggingConfig` with attributes: `level: str`, `log_dir: Path`, `max_log_size_mb: int`, `backup_count: int`, `json_format: bool`."
+        },
+        {
+          "function_name": "ManagementConfig (dataclass)",
+          "prompt": "Implement a dataclass `ManagementConfig` with attributes: `conflict_resolution: Literal[\"manual\", \"auto_keep_latest\"]`, `management_app_host: str`, `management_app_port: int`, `notification_command: Optional[str]`."
+        },
+        {
+          "function_name": "load_config",
+          "prompt": "Implement function `load_config(config_path: Optional[Path] = None) -> Settings`. Purpose: Load, validate, and return configuration. Input: optional custom path (default `./config/config.yaml`). Output: validated `Settings` instance. Restrictions: file must exist and be valid YAML; raises `ConfigError` if invalid. External deps: `yaml` (PyYAML), `pydantic` for validation. Internal deps: `schema.validate_config()`. Use `from pathlib import Path`, `from typing import Optional`, `import yaml`, `from pydantic import ValidationError`. Implement config loading, call `validate_config`, then map to dataclasses."
+        },
+        {
+          "function_name": "get_config",
+          "prompt": "Implement singleton accessor `get_config() -> Settings`. Purpose: Return existing config instance or load default. Input: None. Output: `Settings` instance. Restrictions: None. Internal deps: `_CONFIG_INSTANCE`, `load_config()`. Use global `_CONFIG_INSTANCE`."
+        },
+        {
+          "function_name": "reload_config",
+          "prompt": "Implement function `reload_config() -> Settings`. Purpose: Force reload config from disk. Input: None. Output: Fresh `Settings` instance. Internal deps: `load_config()`, updates `_CONFIG_INSTANCE`. Return the loaded config."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/config/schema.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "ConfigSchema (Pydantic model)",
+          "prompt": "Implement a Pydantic model `ConfigSchema` for validating the YAML structure. Fields should match the structure of `Settings` (nested dataclasses). Include validator methods: `validate_watch_folders(cls, v)` to ensure folders exist and are readable, and `validate_time_window(cls, v)` to ensure start != end and format is HH:MM. Use `from pydantic import BaseModel, validator`, `from pathlib import Path`, `from typing import Dict, List`."
+        },
+        {
+          "function_name": "validate_config",
+          "prompt": "Implement function `validate_config(config_dict: Dict) -> Dict`. Purpose: Validate raw config dictionary. Input: `config_dict` from YAML. Output: validated dictionary (or raises `ValidationError`). External deps: `pydantic`. Internal deps: uses `ConfigSchema`."
+        },
+        {
+          "function_name": "validate_ai_backend",
+          "prompt": "Implement function `validate_ai_backend(backend_config: Dict) -> bool`. Purpose: Check if selected AI backend is available. Input: AI configuration section. Output: `True` if available, `False` otherwise (logs warning). No exception. Use basic existence checks (e.g., if backend is 'ollama', try to connect; if 'transformers', check torch/transformers import). Return boolean."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/db/database.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "_DB_CONNECTION (global)",
+          "prompt": "Declare global variable `_DB_CONNECTION: Optional[sqlite3.Connection] = None`."
+        },
+        {
+          "function_name": "Database (class)",
+          "prompt": "Implement class `Database` as a singleton manager for SQLite. Methods: `__init__(db_path: Path, foreign_keys: bool = True)`, `connect() -> sqlite3.Connection`, `execute(query: str, params: tuple = (), commit: bool = False) -> sqlite3.Cursor`, `executemany(query: str, params_list: List[tuple], commit: bool = False) -> sqlite3.Cursor`, `fetchone(query: str, params: tuple = ()) -> Optional[tuple]`, `fetchall(query: str, params: tuple = ()) -> List[tuple]`, `commit()`, `rollback()`, `close()`, `backup(backup_path: Path) -> bool`, `vacuum()`, `table_exists(table_name: str) -> bool`. Use threading.local for thread safety. Execute with parameterized queries. Backup uses SQLite online backup API. Include error handling. Import sqlite3, threading, pathlib."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/db/models.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "FileRecord (class)",
+          "prompt": "Implement a data class (or dataclass) `FileRecord` with attributes: `id: int`, `path: Path`, `filename: str`, `version: Optional[str]`, `sha256: str`, `size_bytes: int`, `mime_type: str`, `first_seen: datetime`, `last_modified: datetime`, `status: Literal[\"pending\", \"quarantined\", \"processing\", \"processed\", \"failed\", \"conflicting\"]`, `assigned_priority: int`. Include methods `to_dict() -> dict` and `from_dict(cls, data: dict) -> 'FileRecord'`."
+        },
+        {
+          "function_name": "VersionRecord (class)",
+          "prompt": "Implement a dataclass `VersionRecord` with attributes: `file_id: int`, `version_number: str`, `parent_version: Optional[str]`, `conflict_resolved: bool`, `resolution_choice: Optional[str]`, `resolved_by: Optional[str]`, `resolved_at: Optional[datetime]`. Include `to_dict` and `from_dict`."
+        },
+        {
+          "function_name": "ProcessingLog (class)",
+          "prompt": "Implement a dataclass `ProcessingLog` with attributes: `id: int`, `file_id: int`, `status: str`, `stage: str`, `message: str`, `created_at: datetime`, `retry_count: int`. Include `to_dict` and `from_dict`."
+        },
+        {
+          "function_name": "ConflictRecord (class)",
+          "prompt": "Implement a dataclass `ConflictRecord` with attributes: `id: int`, `file_group: str`, `versions: List[str]`, `status: Literal[\"pending\", \"resolved\"]`, `created_at: datetime`, `resolved_at: Optional[datetime]`. Include `to_dict` and `from_dict`."
+        },
+        {
+          "function_name": "MetricRecord (class)",
+          "prompt": "Implement a dataclass `MetricRecord` with attributes: `id: int`, `date: date`, `files_processed: int`, `tokens_processed: int`, `avg_processing_time_seconds: float`, `ai_call_count: int`. Include `to_dict` and `from_dict`."
+        },
+        {
+          "function_name": "ScheduleLog (class)",
+          "prompt": "Implement a dataclass `ScheduleLog` with attributes: `id: int`, `scheduled_start: datetime`, `actual_start: datetime`, `actual_end: datetime`, `files_processed: int`, `window_name: str`. Include `to_dict` and `from_dict`."
+        },
+        {
+          "function_name": "create_tables",
+          "prompt": "Implement function `create_tables(db: Database)`. Purpose: Create all tables if they don't exist (files, versions, processing_logs, conflicts, metrics, schedule_logs). Use SQL `CREATE TABLE IF NOT EXISTS`. Internal deps: `db.execute()`."
+        },
+        {
+          "function_name": "migrate_schema",
+          "prompt": "Implement function `migrate_schema(db: Database, target_version: int)`. Purpose: Apply schema migrations incrementally. Use a versions table to track current version. For each migration step, execute SQL. Internal deps: `db.execute()`, `_get_current_version()` (helper)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/db/file_tracker.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "FileTracker (class)",
+          "prompt": "Implement class `FileTracker` with CRUD operations for file records. Dependencies: `Database` (internal). Methods: `__init__(db: Database)`, `add_file(file_record: FileRecord) -> int` (raises IntegrityError if SHA256 exists), `get_file_by_path(path: Path, version: Optional[str] = None) -> Optional[FileRecord]`, `get_file_by_sha256(sha256: str) -> Optional[FileRecord]`, `get_pending_files(limit: int = 100) -> List[FileRecord]` (ordered by priority and first_seen), `update_file_status(file_id: int, status: str, message: Optional[str] = None)`, `file_exists(sha256: str) -> bool`, `get_failed_files(retry_limit: int = 3) -> List[FileRecord]`, `increment_retry_count(file_id: int)`, `get_statistics() -> Dict` (counts by status). Use parameterized queries."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/db/version_tracker.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "VersionTracker (class)",
+          "prompt": "Implement class `VersionTracker` with methods for version and conflict management. Dependencies: `Database`. Methods: `__init__(db: Database)`, `register_version(file_id: int, version_number: str, parent_version: Optional[str] = None)`, `get_version_chain(file_path: Path) -> List[VersionRecord]`, `detect_conflict(file_group: str, versions: List[str]) -> Optional[int]` (returns conflict ID if exists), `create_conflict(file_group: str, versions: List[str]) -> int`, `resolve_conflict(conflict_id: int, chosen_version: str, resolved_by: str = \"user\")`, `get_pending_conflicts() -> List[ConflictRecord]`, `mark_version_as_resolved(file_id: int, resolution: str)`. Use SQL with parameter binding."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/watcher/directory_watcher.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "_OBSERVER (global)",
+          "prompt": "Global variable `_OBSERVER: Optional[watchdog.observers.Observer] = None`."
+        },
+        {
+          "function_name": "DirectoryWatcher (class)",
+          "prompt": "Implement class `DirectoryWatcher` that manages watchdog observers for multiple directories. Dependencies: `watchdog`, `event_handler.SophiaEventHandler`. Methods: `__init__(event_queue: queue.Queue, config: WatcherConfig)`, `add_watch(path: Path, recursive: bool = True) -> bool`, `remove_watch(path: Path)`, `start()`, `stop()`, `on_any_event(event)` (callback for logging). Use `watchdog.observers.Observer`, `watchdog.events.FileSystemEventHandler`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/watcher/event_handler.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "SophiaEventHandler (class)",
+          "prompt": "Implement class `SophiaEventHandler` inheriting from `watchdog.events.FileSystemEventHandler`. Handles filesystem events and pushes to debouncer. Methods: `__init__(debouncer: Debouncer, extensions: List[str])`, `on_created(event)`, `on_modified(event)`, `on_moved(event)`, `_queue_event(file_path: Path)`, `_is_valid_extension(file_path: Path) -> bool`. Ignores directories and non-matching extensions."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/watcher/debouncer.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "Debouncer (class)",
+          "prompt": "Implement class `Debouncer` that implements 24-hour hold policy and duplicate suppression. Dependencies: `threading`, `time`, `scheduler.ProcessingScheduler`. Methods: `__init__(hold_hours: int, processing_queue: queue.Queue, scheduler: ProcessingScheduler)`, `add_event(file_path: Path, event_time: datetime)`, `_schedule_release(file_path: Path, release_time: datetime)` (uses threading.Timer), `_release_file(file_path: Path)` (checks DB status, pushes if still needed), `_push_to_processing(file_path: Path)`, `cancel_file(file_path: Path)`, `get_pending_count() -> int`. Use dict for tracking timers."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/watcher/scheduler.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "ProcessingScheduler (class)",
+          "prompt": "Implement class `ProcessingScheduler` for time-window and delay enforcement. Dependencies: `scheduler.time_window.TimeWindow`, `scheduler.rate_limiter.RateLimiter`. Methods: `__init__(config: SchedulerConfig)`, `can_process_now() -> bool`, `schedule_processing(file_path: Path, priority: int = 5) -> bool` (returns True if queued), `get_next_window_start() -> datetime`, `wait_for_window()` (sleeps until next window), `pause_processing()`, `resume_processing()`. Uses internal TimeWindow and RateLimiter instances."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/security/sandbox.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "Sandbox (class)",
+          "prompt": "Implement class `Sandbox` to isolate file parsing with resource limits. Dependencies: `resource`, `signal`, `subprocess`. Methods: `__init__(max_cpu_seconds: int = 60, max_memory_mb: int = 512, max_filesize_mb: int = 100)`, `run_in_sandbox(func: Callable, *args, timeout: int = 30, **kwargs) -> Any` (uses multiprocessing or resource.setrlimit), `check_file_size(file_path: Path) -> bool`, `create_isolated_temp_dir() -> Path` (tempfile.mkdtemp with restricted permissions), `cleanup_temp_dir(path: Path)`, `set_process_limits()`. Raises SandboxError on failure."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/security/validator.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "validate_file_header",
+          "prompt": "Implement function `validate_file_header(file_path: Path, expected_magic_bytes: Dict[str, bytes]) -> bool`. Purpose: Check magic bytes match extension. Use `magic` (python-magic) or manual bytes comparison. Return boolean."
+        },
+        {
+          "function_name": "check_mime_type",
+          "prompt": "Implement `check_mime_type(file_path: Path, allowed_types: List[str]) -> bool`. Verify MIME type using libmagic. External deps: `magic.from_file()`."
+        },
+        {
+          "function_name": "scan_for_macros",
+          "prompt": "Implement `scan_for_macros(file_path: Path, file_format: str) -> bool`. Detect VBA macros in Office files using `olefile` for OLE analysis. Return True if macros found."
+        },
+        {
+          "function_name": "detect_zip_bomb",
+          "prompt": "Implement `detect_zip_bomb(file_path: Path, ratio_threshold: int = 100) -> bool`. Check if compressed file has unrealistic compression ratio using `zipfile.ZipFile`. Return True if suspicious."
+        },
+        {
+          "function_name": "validate_filename",
+          "prompt": "Implement `validate_filename(filename: str) -> bool`. Reject path traversal chars (`..`, `./`, null bytes). Return True if safe."
+        },
+        {
+          "function_name": "check_embedded_objects",
+          "prompt": "Implement `check_embedded_objects(file_path: Path) -> List[str]`. List potentially dangerous embedded objects (OLE, scripts). Return list of object types found."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/security/sanitizer.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "sanitize_text",
+          "prompt": "Implement `sanitize_text(text: str) -> str`. Remove null bytes, control characters, potential escape sequences. Return cleaned string."
+        },
+        {
+          "function_name": "remove_embedded_scripts",
+          "prompt": "Implement `remove_embedded_scripts(xml_content: bytes) -> bytes`. Strip `<script>`, `<object>`, `javascript:` from XML/HTML content. Use regex or lxml."
+        },
+        {
+          "function_name": "strip_vba_macros",
+          "prompt": "Implement `strip_vba_macros(ole_file_path: Path) -> Path`. Create copy of Office file with all VBA removed. External deps: `olefile`, `oletools` (optional). Return path to sanitized copy."
+        },
+        {
+          "function_name": "filter_pdf_javascript",
+          "prompt": "Implement `filter_pdf_javascript(pdf_path: Path) -> Path`. Remove JavaScript actions from PDF using `PyPDF2` or `pdfplumber` with redaction. Return new path."
+        },
+        {
+          "function_name": "normalize_line_endings",
+          "prompt": "Implement `normalize_line_endings(text: str) -> str`. Convert all line endings to `\\n`."
+        },
+        {
+          "function_name": "escape_for_json",
+          "prompt": "Implement `escape_for_json(text: str) -> str`. Ensure string is JSON-safe (quotes, backslashes). Use `json.dumps` or manual escaping."
+        },
+        {
+          "function_name": "truncate_by_bytes",
+          "prompt": "Implement `truncate_by_bytes(text: str, max_bytes: int) -> str`. Truncate to byte limit without breaking UTF-8. Decode safely."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/security/scanner.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "VirusScanner (class)",
+          "prompt": "Implement class `VirusScanner` as interface to ClamAV. Methods: `__init__(scan_command: str = \"clamscan --no-summary --infected\")`, `scan_file(file_path: Path) -> Tuple[bool, str]` (returns (is_clean, message)), `scan_directory(directory: Path) -> Dict[Path, str]`, `quarantine_infected(file_path: Path, quarantine_dir: Path) -> Path`, `is_clamav_available() -> bool`. Use subprocess.run."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/base_parser.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "BaseParser (ABC)",
+          "prompt": "Implement abstract base class `BaseParser`. Methods: `__init__(sandbox: Optional[Sandbox] = None)`, `@abstractmethod extract_text(file_path: Path) -> str`, `@abstractmethod get_metadata(file_path: Path) -> Dict`, `sanitize_output(text: str) -> str` (uses sanitizer.sanitize_text), `validate_input(file_path: Path)` (raises exceptions), `supports_encryption() -> bool` (default False). Use abc.ABC, abstractmethod."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/doc_parser.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "DocParser (class)",
+          "prompt": "Implement `DocParser` inheriting from `BaseParser`. Purpose: parse legacy .doc files using antiword or catdoc subprocess. Methods: `extract_text(file_path: Path) -> str` (try antiword then catdoc), `get_metadata(file_path: Path) -> Dict` (parse antiword -m output), `_check_tool_available(tool_name: str) -> bool`. Raise ParserError if no tool."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/docx_parser.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "DocxParser (class)",
+          "prompt": "Implement `DocxParser` inheriting from `BaseParser`. Parse .docx using `python-docx`. Methods: `extract_text(file_path: Path) -> str` (extract paragraphs, tables, headers/footers), `get_metadata(file_path: Path) -> Dict` (read core properties), `_extract_tables(doc) -> str`. Use `Document` from `docx`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/xls_parser.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "XlsParser (class)",
+          "prompt": "Implement `XlsParser` inheriting from `BaseParser`. Parse legacy .xls using `xlrd`. Methods: `extract_text(file_path: Path) -> str` (open with formatting_info=False, iterate sheets/rows), `get_metadata(file_path: Path) -> Dict` (sheet names, row/col counts), `_cell_to_string(cell) -> str`. Use `xlrd.open_workbook(on_demand=True)`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/xlsx_parser.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "XlsxParser (class)",
+          "prompt": "Implement `XlsxParser` inheriting from `BaseParser`. Parse .xlsx using `openpyxl` with read_only=True. Methods: `extract_text(file_path: Path) -> str`, `get_metadata(file_path: Path) -> Dict`, `_extract_formulas_as_text(sheet) -> str` (optional). Use `load_workbook`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/pdf_parser.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "PdfParser (class)",
+          "prompt": "Implement `PdfParser` inheriting from `BaseParser`. Extract text from PDF (no OCR) using pdfplumber primary, PyPDF2 fallback. Methods: `extract_text(file_path: Path) -> str`, `get_metadata(file_path: Path) -> Dict`, `_extract_pdfplumber(pdf_path) -> str`, `_extract_pypdf2(pdf_path) -> str`, `supports_encryption() -> bool` (return False)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/parser/parser_registry.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "_PARSERS (global)",
+          "prompt": "Global dictionary `_PARSERS: Dict[str, Type[BaseParser]] = {}`."
+        },
+        {
+          "function_name": "ParserRegistry (class)",
+          "prompt": "Implement singleton class `ParserRegistry` with methods: `register(extension: str, parser_class: Type[BaseParser])`, `get_parser(extension: str) -> Optional[BaseParser]` (caches instances), `list_supported_extensions() -> List[str]`, `get_parser_for_file(file_path: Path) -> Optional[BaseParser]`, `auto_register_builtins()` (registers all implemented parsers)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/processor/file_processor.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "FileProcessor (class)",
+          "prompt": "Implement class `FileProcessor` that orchestrates the entire processing pipeline for a single file. Dependencies: `parser.ParserRegistry`, `ai.base_client.AIClient`, `db.FileTracker`, `security.sandbox.Sandbox`, `output.writer.OutputWriter`. Methods: `__init__(config: Settings, db_tracker: FileTracker, version_tracker: VersionTracker, ai_client: AIClient, writer: OutputWriter, sandbox: Sandbox)`, `process(file_path: Path, version: Optional[str] = None) -> bool` (main entry point, returns success), `_validate(file_path: Path) -> Tuple[bool, str]`, `_check_conflicts(original_path: Path, version: str) -> bool`, `_extract(parser: BaseParser, file_path: Path) -> str`, `_ai_process(ai_client: AIClient, text: str, metadata: Dict) -> List[Dict]`, `_write_output(samples: List[Dict]) -> bool`. Follow pipeline steps: validate, check processed, detect version, conflicts, quarantine sandbox, extract, sanitize, AI, write output, update DB, archive."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/processor/version_detector.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "_VERSION_PATTERNS (global)",
+          "prompt": "Global list of regex patterns: `_VERSION_PATTERNS = [ r'_v(\\d+(?:\\.\\d+)*)', r'-(\\d+(?:\\.\\d+)*)', r'\\((\\d+(?:\\.\\d+)*)\\)', r'\\.(\\d+)(?=\\.\\w+$)', r'_(\\d{8})' ]`."
+        },
+        {
+          "function_name": "detect_version",
+          "prompt": "Implement `detect_version(file_path: Path) -> Optional[str]`. Extract version from stem of filename using patterns. Return version string or None."
+        },
+        {
+          "function_name": "extract_version_number",
+          "prompt": "Implement `extract_version_number(version_str: str) -> Tuple[int, ...]`. Convert 'v2.5.1' to (2,5,1). Strip non-numeric prefixes."
+        },
+        {
+          "function_name": "compare_versions",
+          "prompt": "Implement `compare_versions(v1: str, v2: str) -> int`. Return -1 if v1 < v2, 0 if equal, 1 if v1 > v2. Use tuple comparison."
+        },
+        {
+          "function_name": "get_base_filename",
+          "prompt": "Implement `get_base_filename(file_path: Path) -> Path`. Remove version suffix from filename. Example: `report_v2.pdf` → `report.pdf`."
+        },
+        {
+          "function_name": "group_by_logical_file",
+          "prompt": "Implement `group_by_logical_file(file_paths: List[Path]) -> Dict[str, List[Path]]`. Map base name to list of versioned paths."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/processor/conflict_resolver.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "ConflictResolver (class)",
+          "prompt": "Implement class `ConflictResolver` with methods: `__init__(version_tracker: VersionTracker, mode: str = \"manual\")`, `resolve(conflict_id: int, chosen_version: Optional[str] = None) -> bool`, `_auto_resolve(versions: List[str]) -> str` (highest version), `_request_user_input(conflict_id: int, versions: List[str]) -> Optional[str]` (trigger management app), `queue_for_management(conflict_id: int)`, `get_pending_conflicts() -> List[ConflictRecord]`, `notify_user(message: str)` (subprocess notification)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/processor/quarantine.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "Quarantine (class)",
+          "prompt": "Implement class `Quarantine` to securely store files. Methods: `__init__(quarantine_root: Path)`, `move_to_quarantine(file_path: Path, stage: str) -> Path` (stages: incoming, processing, processed, rejected, conflicts), `move_from_quarantine(quarantine_path: Path, destination: Path)`, `mark_processed(quarantine_path: Path)`, `mark_rejected(quarantine_path: Path, reason: str)`, `cleanup_old_files(days: int = 30)`, `get_quarantine_statistics() -> Dict`. Use shutil.move, create subdirs."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/ai/base_client.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "AIClient (ABC)",
+          "prompt": "Implement abstract base class `AIClient`. Methods: `@abstractmethod process_text(text: str, metadata: Optional[Dict] = None) -> List[Dict]`, `@abstractmethod health_check() -> bool`, `@abstractmethod get_model_info() -> Dict`, `format_prompt(content: str, template: str) -> str` (use str.format or Jinja2), `validate_response(response: Dict, schema: Dict) -> bool`, `_parse_json_response(raw_response: str) -> Dict`. Raise AIConnectionError, AITimeoutError, AIResponseError (define custom exceptions)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/ai/ollama_client.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "OllamaClient (class)",
+          "prompt": "Implement `OllamaClient` inheriting from `AIClient`. Methods: `__init__(base_url: str, model: str, timeout: int, max_tokens: int, temperature: float)`, `process_text(text: str, metadata: Optional[Dict] = None) -> List[Dict]` (POST to /api/generate), `health_check() -> bool` (GET /api/tags), `_call_api(prompt: str) -> str` (with retries). Use `httpx` or `requests`. Include retry decorator from utils."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/ai/transformers_client.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "TransformersClient (class)",
+          "prompt": "Implement `TransformersClient` inheriting from `AIClient`. Methods: `__init__(model_name: str, device: str = \"cuda\", load_in_8bit: bool = False)` (load model and tokenizer), `process_text(text: str, metadata: Optional[Dict] = None) -> List[Dict]`, `health_check() -> bool`, `_free_memory()`. Use `transformers`, `torch`, `accelerate`. Memory-intensive; include device handling."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/ai/prompt_templates.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "PromptTemplate (class)",
+          "prompt": "Implement class `PromptTemplate`. Methods: `__init__(template_path: Optional[Path] = None)`, `render(content: str, context: Optional[Dict] = None) -> str`, `get_default_template() -> str` (built-in instruction-output prompt), `validate_template(template: str) -> bool`. Support Jinja2 if available, else str.format."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/ai/training_formatter.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "TrainingFormatter (class)",
+          "prompt": "Implement class `TrainingFormatter`. Methods: `__init__(output_schema: Dict)`, `to_jsonl(samples: List[Dict], file_handle: TextIO)`, `to_json(samples: List[Dict], file_handle: TextIO, indent: int = 2)`, `validate_sample(sample: Dict) -> bool`, `add_metadata(sample: Dict, source_file: Path, timestamp: datetime) -> Dict`, `deduplicate_samples(samples: List[Dict]) -> List[Dict]` (hash-based)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/output/writer.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "OutputWriter (class)",
+          "prompt": "Implement class `OutputWriter` for thread-safe atomic writing. Dependencies: `output.rotator.Rotator`. Methods: `__init__(config: OutputConfig, formatter: TrainingFormatter)`, `append(sample: Dict) -> bool`, `append_batch(samples: List[Dict]) -> int`, `_write(sample: Dict)`, `flush()`, `close()`, `get_current_output_path() -> Path`. Use threading.Lock, atomic write via temp file rename."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/output/rotator.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "Rotator (class)",
+          "prompt": "Implement class `Rotator` for file size and date-based rotation. Methods: `__init__(output_dir: Path, max_size_mb: int, rotate_daily: bool, compress: bool)`, `check_rotate(current_path: Path, current_size_mb: float) -> Path`, `_rotate_by_size(current_path: Path) -> Path`, `_rotate_by_date(current_path: Path) -> Path`, `compress_file(file_path: Path) -> Path`, `get_archive_list() -> List[Path]`, `cleanup_old_archives(days_to_keep: int = 90)`. Use datetime, gzip."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/output/metrics.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "MetricsCollector (class)",
+          "prompt": "Implement class `MetricsCollector`. Methods: `__init__(db: Database)`, `log_sample(sample: Dict, processing_time_ms: int, token_count: int)`, `get_daily_stats(date: Optional[date] = None) -> Dict`, `generate_report(period: str = \"week\") -> str` (Markdown), `increment_counter(metric_name: str)`, `record_timing(operation: str, duration_ms: int)`. Store in metrics table."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/scheduler/time_window.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "TimeWindow (class)",
+          "prompt": "Implement class `TimeWindow` for daily time window logic. Methods: `__init__(start_str: str, end_str: str, timezone_str: str = \"UTC\")`, `is_within_window(dt: Optional[datetime] = None) -> bool`, `get_next_window_start(dt: Optional[datetime] = None) -> datetime`, `seconds_until_window(dt: Optional[datetime] = None) -> float`, `get_window_duration_seconds() -> int`, `_parse_time(time_str: str) -> time`. Support crossing midnight (e.g., 17:00 to 07:00). Use pytz if available."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/scheduler/rate_limiter.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "RateLimiter (class)",
+          "prompt": "Implement class `RateLimiter` to enforce delay between file processing. Methods: `__init__(delay_seconds: int)`, `wait_if_needed()` (sleeps if needed), `record_processing()`, `set_delay(delay_seconds: int)`, `reset()`, `get_remaining_cooldown() -> float`. Use threading.Lock for thread safety."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/scheduler/backfill.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "BackfillProcessor (class)",
+          "prompt": "Implement class `BackfillProcessor` to discover and queue existing files. Methods: `__init__(file_tracker: FileTracker, version_detector: VersionDetector)`, `scan_folders(watch_folders: List[Path], extensions: List[str]) -> List[Path]`, `filter_unprocessed(files: List[Path]) -> List[Path]`, `enqueue_for_processing(file_paths: List[Path], priority: int = 3)`, `run_backfill(watch_folders: List[Path], extensions: List[str], max_files: int = 1000) -> int`, `should_backfill_on_startup(config: Settings) -> bool`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/scheduler/cron_manager.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "CronManager (class)",
+          "prompt": "Implement class `CronManager` for optional system cron integration. Methods: `sync_with_cron(command: str, schedule: str)`, `remove_cron_job(command: str)`, `get_current_cron_jobs() -> List[str]`, `is_cron_available() -> bool`. Use `subprocess` to call `crontab`. Optional dependency on `python-crontab` if available."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/cli/commands.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "main (entry point)",
+          "prompt": "Implement main CLI entry point using `click` or `argparse`. Dispatch to subcommands: `start`, `stop`, `status`, `conflicts`, `backfill`, `config`, `metrics`, `quarantine`. Each subcommand function: `start(args)`, `stop(args)`, `status(args)`, `conflicts(args)`, `backfill(args)`, `config(args)`, `metrics(args)`, `quarantine(args)`. Use `click` decorators or `argparse`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/cli/management_app.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "ConflictManagementApp (class)",
+          "prompt": "Implement class `ConflictManagementApp` for TUI/CLI to resolve version conflicts. Dependencies: `rich` or `prompt_toolkit`. Methods: `__init__(version_tracker: VersionTracker)`, `show_conflicts() -> bool`, `_display_conflict(conflict: ConflictRecord, versions: List[FileRecord]) -> str`, `_preview_file(file_path: Path, max_lines: int = 10)`, `resolve_all_auto()`, `export_conflict_list(output_path: Path)`. Use `rich` tables and prompts."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/cli/status_reporter.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "print_status",
+          "prompt": "Implement function `print_status(db: Database, watcher: DirectoryWatcher, scheduler: ProcessingScheduler)`. Print pretty system status using `rich` tables: counts, next window, queue sizes."
+        },
+        {
+          "function_name": "print_queue",
+          "prompt": "Implement `print_queue(file_tracker: FileTracker, limit: int = 20)` to show pending files."
+        },
+        {
+          "function_name": "print_metrics",
+          "prompt": "Implement `print_metrics(metrics: MetricsCollector, days: int = 7)` to show training progress."
+        },
+        {
+          "function_name": "print_version_conflicts",
+          "prompt": "Implement `print_version_conflicts(version_tracker: VersionTracker)`."
+        },
+        {
+          "function_name": "print_watcher_status",
+          "prompt": "Implement `print_watcher_status(watcher: DirectoryWatcher)` to show watched folders."
+        },
+        {
+          "function_name": "generate_html_report",
+          "prompt": "Implement `generate_html_report(db: Database, output_path: Path)` to export dashboard as HTML."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/utils/logger.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "_LOGGERS (global)",
+          "prompt": "Global dict `_LOGGERS: Dict[str, logging.Logger] = {}` and `_SECURITY_LOGGER: Optional[logging.Logger] = None`."
+        },
+        {
+          "function_name": "setup_logging",
+          "prompt": "Implement `setup_logging(config: LoggingConfig) -> None`. Configure rotating file handlers, console handler. Use `logging.handlers.RotatingFileHandler`. Set format based on config.json_format."
+        },
+        {
+          "function_name": "get_logger",
+          "prompt": "Implement `get_logger(name: str) -> logging.Logger`. Return logger with consistent formatting. Cache in `_LOGGERS`."
+        },
+        {
+          "function_name": "get_security_logger",
+          "prompt": "Implement `get_security_logger() -> logging.Logger`. Dedicated logger for security events, separate file."
+        },
+        {
+          "function_name": "log_security_event",
+          "prompt": "Implement `log_security_event(event_type: str, file_path: Path, details: Dict)`. Log structured JSON message using security logger."
+        },
+        {
+          "function_name": "set_log_level",
+          "prompt": "Implement `set_log_level(level: str)` to dynamically adjust log level for all handlers."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/utils/file_utils.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "safe_copy",
+          "prompt": "Implement `safe_copy(src: Path, dst: Path, preserve_metadata: bool = False)`. Copy with error handling and permissions."
+        },
+        {
+          "function_name": "atomic_write",
+          "prompt": "Implement `atomic_write(file_path: Path, content: Union[str, bytes])`. Write to temp file then rename (atomic)."
+        },
+        {
+          "function_name": "get_file_size_safe",
+          "prompt": "Implement `get_file_size_safe(file_path: Path) -> int`. Return size, handle permission errors (return 0)."
+        },
+        {
+          "function_name": "ensure_directory",
+          "prompt": "Implement `ensure_directory(path: Path, mode: int = 0o750)`. Create directory with safe permissions (owner rwx, group rx, others none)."
+        },
+        {
+          "function_name": "secure_delete",
+          "prompt": "Implement `secure_delete(file_path: Path, passes: int = 1)`. Overwrite file content before deletion (for sensitive files)."
+        },
+        {
+          "function_name": "is_path_safe",
+          "prompt": "Implement `is_path_safe(base_dir: Path, target_path: Path) -> bool`. Prevent path traversal attacks by resolving and checking prefix."
+        },
+        {
+          "function_name": "get_unique_filename",
+          "prompt": "Implement `get_unique_filename(directory: Path, prefix: str = \"\", suffix: str = \"\") -> Path`. Generate non-conflicting filename using counter or timestamp."
+        },
+        {
+          "function_name": "wait_for_file_stable",
+          "prompt": "Implement `wait_for_file_stable(file_path: Path, check_interval: float = 0.5, max_wait_seconds: int = 30)`. Wait for file size to stop changing (detect complete write)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/utils/hash_utils.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "compute_sha256",
+          "prompt": "Implement `compute_sha256(file_path: Path, chunk_size: int = 8192) -> str`. Return hex digest of file."
+        },
+        {
+          "function_name": "compute_hash_chunked",
+          "prompt": "Implement `compute_hash_chunked(file_path: Path, max_bytes: int = None) -> str`. Hash only first N bytes for quick dedup."
+        },
+        {
+          "function_name": "verify_hash",
+          "prompt": "Implement `verify_hash(file_path: Path, expected_hash: str) -> bool`. Compare computed hash with expected."
+        },
+        {
+          "function_name": "hash_string",
+          "prompt": "Implement `hash_string(text: str) -> str`. SHA256 of UTF-8 string."
+        },
+        {
+          "function_name": "hash_dict",
+          "prompt": "Implement `hash_dict(data: Dict) -> str`. Stable hash of JSON-serializable dict (sort keys, then hash)."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/utils/time_utils.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "wait_until",
+          "prompt": "Implement `wait_until(target_time: datetime, poll_interval: float = 1.0)`. Sleep until specific datetime."
+        },
+        {
+          "function_name": "parse_time_window",
+          "prompt": "Implement `parse_time_window(window_str: str) -> Tuple[time, time]`. Input like '17:00-07:00', return (start, end)."
+        },
+        {
+          "function_name": "human_duration",
+          "prompt": "Implement `human_duration(seconds: int) -> str`. Return '2 days, 3 hours, 15 minutes'."
+        },
+        {
+          "function_name": "to_iso8601",
+          "prompt": "Implement `to_iso8601(dt: datetime) -> str`. Format as ISO 8601 string."
+        },
+        {
+          "function_name": "from_iso8601",
+          "prompt": "Implement `from_iso8601(iso_str: str) -> datetime`. Parse ISO 8601 string."
+        },
+        {
+          "function_name": "get_timezone_aware_now",
+          "prompt": "Implement `get_timezone_aware_now(timezone_str: str) -> datetime`. Return current datetime in given timezone."
+        },
+        {
+          "function_name": "format_timestamp",
+          "prompt": "Implement `format_timestamp(dt: datetime, format: str = \"%Y-%m-%d %H:%M:%S\") -> str`."
+        }
+      ]
+    },
+    {
+      "filename": "src/sophia_learner/utils/retry.py",
+      "functions_and_prompts": [
+        {
+          "function_name": "retry (decorator)",
+          "prompt": "Implement decorator `retry(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0, exceptions: Tuple = (Exception,))`. Retry on specified exceptions with exponential backoff. Works on sync functions."
+        },
+        {
+          "function_name": "retry_async (decorator)",
+          "prompt": "Implement async version `retry_async` for async functions. Same parameters."
+        },
+        {
+          "function_name": "RetryStrategy (class)",
+          "prompt": "Implement class `RetryStrategy` with static methods: `linear(delay: float, attempt: int) -> float`, `exponential(delay: float, attempt: int, backoff: float = 2.0) -> float`, `fibonacci(delay: float, attempt: int) -> float`."
+        },
+        {
+          "function_name": "is_retryable_error",
+          "prompt": "Implement `is_retryable_error(error: Exception, retryable_types: Tuple) -> bool`. Check if error instance matches any retryable type."
+        }
+      ]
+    }
+  ]
+}
