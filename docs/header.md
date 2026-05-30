@@ -1,8 +1,5 @@
 # Comprehensive Summary: Sophia Learner Framework Development
 
-This summary captures **all decisions, requirements, architecture, documentation, and next steps** from our conversation. You can use this to continue in a new conversation without losing context.
-
----
 
 ## 1. Project Identity
 
@@ -201,6 +198,3 @@ When you open a **new conversation**, you can simply paste this summary and then
 - **AI runs locally** – Never send data to external APIs.  
 - **Output format** – JSONL with versioned schema.
 
----
-
-This summary contains **everything** we discussed. You can now start a fresh conversation, paste this text, and we can resume coding or documentation exactly where we left off.
