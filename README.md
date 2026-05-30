@@ -3,7 +3,7 @@ Let your machine read and learn your data.
 
 **Intelligent Document Processing Pipeline for AI Training Data Generation**
 
-Sophia Learner is a secure, automated framework that watches designated folders for documents, extracts their content, processes them through local AI models, and generates structured training data for machine learning.
+Sophia Learner is a secure, automated crawler that watches designated folders for documents, extracts their content, processes them through local AI models, and generates structured training data for machine learning.
 
 ## Overview
 
